@@ -1,27 +1,20 @@
-def calculate_grade(score):
-    if score >= 90:
-        return "A"
-    elif score >= 80:
-        return "B"
-    elif score >= 70:
-        return "C"
-    else:
-        return "F"
+import cv2
+import numpy as np
+from ultralytics import YOLO
 
-# Get test scores
-math_score = 85
-science_score = 92
+def test_imports():
+    print("OpenCV version:", cv2.__version__)
+    print("NumPy version:", np.__version__)
+    print("YOLO (Ultralytics) is successfully imported")
+    
+    # Create a simple test array with NumPy
+    arr = np.array([1, 2, 3, 4, 5])
+    print("\nNumPy array test:", arr)
+    
+    # Create a simple blank image with OpenCV
+    img = np.zeros((100, 100, 3), dtype=np.uint8)
+    cv2.putText(img, "Test", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    print("OpenCV image shape:", img.shape)
 
-# Calculate average
-average = (math_score + science_score) / 2
-print(f"Math score: {math_score}")
-print(f"Science score: {science_score}")
-print(f"Average score: {average}")
-
-# Get letter grades
-math_grade = calculate_grade(math_score)
-science_grade = calculate_grade(science_score)
-
-print(f"\nMath grade: {math_grade}")
-print(f"Science grade: {science_grade}")
-dsgfdgfS
+if __name__ == "__main__":
+    test_imports()
