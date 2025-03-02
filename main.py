@@ -24,3 +24,4 @@ science_grade = calculate_grade(science_score)
 
 print(f"\nMath grade: {math_grade}")
 print(f"Science grade: {science_grade}")
+dsgfdgfS
