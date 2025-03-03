@@ -4,7 +4,7 @@ from ultralytics import YOLO
 from sklearn.cluster import KMeans
 
 # Load YOLOv8 model
-model = YOLO("yolov8n.pt")
+model = YOLO("yolov5s.pt")
 cap = cv2.VideoCapture("futsal.mp4")
 
 while cap.isOpened():
@@ -13,7 +13,7 @@ while cap.isOpened():
         break
 
     # Detect only 'person' (index 0) and 'sports ball' (index 32)
-    results = model(frame, classes=[0, 32])
+    results = model(frame, classes=[0, 32], verbose=False)
     persons = []  # To store data for detected persons
 
     # Process detections
@@ -24,14 +24,36 @@ while cap.isOpened():
             conf = box.conf[0].item()
 
             if label == "person":
-                # Determine the jersey area (upper half)
-                y_mid = y1 + (y2 - y1) // 2
-                roi = frame[y1:y_mid, x1:x2]
-                # Compute mean HSV color; if ROI is empty, default to [0,0,0]
-                hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV) if roi.size else np.zeros((1, 1, 3))
-                mean_color = cv2.mean(hsv_roi)[:3]
-                # Save bbox, mean color, and y_mid for drawing the ROI later
-                persons.append({'bbox': (x1, y1, x2, y2), 'color': mean_color, 'y_mid': y_mid})
+                # Calculate ROI with padding
+                height = y2 - y1
+                width = x2 - x1
+                
+                # Define ROI boundaries (20% from top, 35% height, 20% padding from sides)
+                roi_top = y1 + int(height * 0.2)  # Moved up from 30% to 20%
+                roi_bottom = roi_top + int(height * 0.35)  # Reduced height to 35%
+                roi_left = x1 + int(width * 0.2)
+                roi_right = x2 - int(width * 0.2)
+                
+                roi = frame[roi_top:roi_bottom, roi_left:roi_right]
+                
+                # Convert to HSV and create mask to ignore black/very dark pixels
+                if roi.size:
+                    hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+                    # Create mask to ignore very dark pixels (low V value in HSV)
+                    mask = hsv_roi[:,:,2] > 30  # Value threshold
+                    if np.any(mask):  # If we have any valid pixels
+                        mean_color = cv2.mean(hsv_roi, mask=mask.astype(np.uint8))[:3]
+                    else:
+                        mean_color = np.zeros(3)
+                else:
+                    mean_color = np.zeros(3)
+                
+                # Save bbox, mean color, and ROI coordinates for drawing later
+                persons.append({
+                    'bbox': (x1, y1, x2, y2),
+                    'color': mean_color,
+                    'roi': (roi_left, roi_top, roi_right, roi_bottom)
+                })
             elif label == "sports ball":
                 # Draw sports ball detections in white
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 255), 2)
@@ -52,14 +74,14 @@ while cap.isOpened():
     # Draw bounding boxes for persons and their jersey ROI
     for i, person in enumerate(persons):
         x1, y1, x2, y2 = person['bbox']
-        y_mid = person['y_mid']
+        roi_left, roi_top, roi_right, roi_bottom = person['roi']
         team = teams[i]
         # Draw main bounding box for the person with team color
         cv2.rectangle(frame, (x1, y1), (x2, y2), team_colors[team], 2)
         cv2.putText(frame, f"Team {team+1}", (x1, y1 - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, team_colors[team], 2)
-        # Draw the jersey area (upper half) rectangle in yellow
-        cv2.rectangle(frame, (x1, y1), (x2, y_mid), (0, 255, 255), 2)
+        # Draw the jersey ROI area in yellow
+        cv2.rectangle(frame, (roi_left, roi_top), (roi_right, roi_bottom), (0, 255, 255), 2)
 
     cv2.imshow("YOLO + KMeans", frame)
     if cv2.waitKey(1) & 0xFF == ord("q"):
