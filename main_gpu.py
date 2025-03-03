@@ -12,7 +12,7 @@ print(f"Using device: {device}")
 model = YOLO("models/yolov5su.pt")
 model.to(device)  # Move model to GPU
 
-cap = cv2.VideoCapture("videos/futsal2.mp4")
+cap = cv2.VideoCapture("videos/futsal3.mp4")
 
 # Initialize variables
 is_paused = False
